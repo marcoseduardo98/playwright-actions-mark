@@ -1,0 +1,82 @@
+name: Playwright Tests
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  e2e:
+    name: End-to-end tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    env:
+      CI: true
+      BASE_URL: http://127.0.0.1:8080
+      BASE_API: http://127.0.0.1:3333
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: yarn
+          cache-dependency-path: |
+            yarn.lock
+            apps/api/yarn.lock
+            apps/web/yarn.lock
+
+      - name: Install root dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Install API dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: apps/api
+
+      - name: Install Web dependencies
+        run: yarn install --frozen-lockfile
+        working-directory: apps/web
+
+      - name: Install Playwright browsers
+        run: yarn playwright install --with-deps
+
+      - name: Start API
+        run: |
+          yarn start > ../api.log 2>&1 &
+        working-directory: apps/api
+
+      - name: Start Web app
+        run: |
+          yarn start > ../web.log 2>&1 &
+        working-directory: apps/web
+
+      - name: Wait for services
+        run: |
+          npx wait-on http://127.0.0.1:3333 http://127.0.0.1:8080
+
+      - name: Run Playwright tests
+        run: yarn playwright test
+
+      - name: Upload Playwright report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Upload service logs
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: service-logs
+          path: |
+            apps/api.log
+            apps/web.log
+          retention-days: 7
