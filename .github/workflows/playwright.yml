@@ -25,7 +25,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 18
           cache: yarn
           cache-dependency-path: |
             yarn.lock
@@ -48,17 +48,25 @@ jobs:
 
       - name: Start API
         run: |
-          yarn start > ../api.log 2>&1 &
+          nohup yarn start > ../api.log 2>&1 &
         working-directory: apps/api
 
       - name: Start Web app
         run: |
-          yarn start > ../web.log 2>&1 &
+          nohup yarn start > ../web.log 2>&1 &
         working-directory: apps/web
 
       - name: Wait for services
         run: |
-          npx wait-on http://127.0.0.1:3333 http://127.0.0.1:8080
+          npx wait-on --timeout 120000 http://127.0.0.1:3333 http://127.0.0.1:8080
+
+      - name: Show service logs on failure
+        if: ${{ failure() }}
+        run: |
+          echo "=== API log ==="
+          cat apps/api.log || true
+          echo "=== Web log ==="
+          cat apps/web.log || true
 
       - name: Run Playwright tests
         run: yarn playwright test
