@@ -39,6 +39,10 @@ jobs:
         run: yarn install --frozen-lockfile
         working-directory: apps/api
 
+      - name: Inicializa banco da API
+        run: yarn db:init
+        working-directory: apps/api
+
       - name: Install Web dependencies
         run: yarn install --frozen-lockfile
         working-directory: apps/web
