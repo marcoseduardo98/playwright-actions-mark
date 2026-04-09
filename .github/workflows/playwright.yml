@@ -58,7 +58,7 @@ jobs:
 
       - name: Wait for services
         run: |
-          npx wait-on --timeout 120000 http://127.0.0.1:3333 http://127.0.0.1:8080
+          npx wait-on --timeout 120000 tcp:127.0.0.1:3333 tcp:127.0.0.1:8080
 
       - name: Show service logs on failure
         if: ${{ failure() }}
